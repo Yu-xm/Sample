@@ -1,0 +1,9 @@
+matplotlib==3.5.3
+nltk==3.7
+numpy==1.23.2
+openprompt==1.0.1
+scikit-learn==1.1.2
+torch==1.12.1
+torchvision==0.13.1
+tqdm==4.64.0
+transformers==4.21.2
