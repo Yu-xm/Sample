@@ -16,13 +16,16 @@ from PIL import Image
 def xrange(x):
     return iter(range(x))
 
-def test_set(all, train, dev, few_shot=True):
+def test_set(all, train, dev, few_shot=True, if_dev=True):
     test = []
     if few_shot:
         used_id = []
         for idx in range(len(train)):
             used_id.append(train[idx].guid)
-            used_id.append(dev[idx].guid)
+        if if_dev:
+            for idx_1 in range(len(dev)):
+                used_id.append(dev[idx_1].guid)
+
 
         for idx in range(len(all)):
             if all[idx].guid not in used_id:
@@ -83,11 +86,10 @@ for idx, d in enumerate(all_data):
     dataset.append(input_example)
 
 
-sampler = FewShotSampler(num_examples_per_label=1, num_examples_per_label_dev=1, also_sample_dev=True)
-
+sampler = FewShotSampler(num_examples_per_label=50, num_examples_per_label_dev=1, also_sample_dev=True)
 train, dev = sampler.__call__(train_dataset=dataset, seed=2)
 
-test = test_set(dataset, train, dev)
+test = test_set(dataset, train, dev, if_dev=True)
 
 # ## uncomment here for full-scale training
 # train, dev = train_test_split(dataset, test_size=0.2, shuffle=True)
