@@ -85,7 +85,7 @@ for idx, d in enumerate(all_data):
 
 sampler = FewShotSampler(num_examples_per_label=1, num_examples_per_label_dev=1, also_sample_dev=True)
 
-train, dev = sampler.__call__(train_dataset=dataset, seed=5)
+train, dev = sampler.__call__(train_dataset=dataset, seed=2)
 
 test = test_set(dataset, train, dev)
 
@@ -277,8 +277,7 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
     report_test = classification_report(alllabels, allpreds, labels=[0,1], target_names=["real", "fake"])
     print(report_test)
 
-alpha = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
+alpha = 0.3
 
-for a in alpha:
-    train(prompt_model,train_dataloader,validation_dataloader,test_dataloader,
-          epoch=20,loss_function=loss_func,optimizer=optimizer1, alpha=a)
+train(prompt_model,train_dataloader,validation_dataloader,test_dataloader,
+    epoch=20,loss_function=loss_func,optimizer=optimizer1, alpha=alpha)
