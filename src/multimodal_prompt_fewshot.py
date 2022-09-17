@@ -9,6 +9,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AdamW, get_linear_schedule_with_warmup
 from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split
 import clip
 from PIL import Image
 
@@ -81,12 +82,18 @@ for idx, d in enumerate(all_data):
     input_example = InputExample(text_a=d['txt'], label=int(d['label']), guid=d['id'])
     dataset.append(input_example)
 
-#
+
 sampler = FewShotSampler(num_examples_per_label=1, num_examples_per_label_dev=1, also_sample_dev=True)
 
-train, dev = sampler.__call__(train_dataset=dataset, seed=3)
+train, dev = sampler.__call__(train_dataset=dataset, seed=5)
 
 test = test_set(dataset, train, dev)
+
+# ## uncomment here for full-scale training
+# train, dev = train_test_split(dataset, test_size=0.2, shuffle=True)
+# dev, test = train_test_split(dev, test_size=0.5, shuffle=True)
+# ##
+
 
 plm, tokenizer, model_config, WrapperClass = load_plm("roberta", "roberta-base")
 
@@ -270,6 +277,8 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
     report_test = classification_report(alllabels, allpreds, labels=[0,1], target_names=["real", "fake"])
     print(report_test)
 
-alpha = 1
-train(prompt_model,train_dataloader,validation_dataloader,test_dataloader,
-          epoch=20,loss_function=loss_func,optimizer=optimizer1, alpha=alpha)
+alpha = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
+
+for a in alpha:
+    train(prompt_model,train_dataloader,validation_dataloader,test_dataloader,
+          epoch=20,loss_function=loss_func,optimizer=optimizer1, alpha=a)
