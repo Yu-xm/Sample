@@ -15,4 +15,3 @@ GitHub: https://github.com/entitize/Fakeddit.git
 | `Eann`           |       | `2018`        | https://github.com/yaqingwang/EANN-KDD18.git                 | `PyTorch`      |
 | `MVAE`           |       | `2019`        | https://github.com/dhruvkhattar/MVAE.git                     | `Keras`        |
 | `SpotFake+`      |       | `2020`        | https://github.com/shiivangii/SpotFakePlus.git               | `Keras`        |
-| `SpotFake+`      |       | `2020`        | https://github.com/shiivangii/SpotFakePlus.git               | `Keras`        |
