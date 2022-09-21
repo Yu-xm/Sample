@@ -12,8 +12,6 @@ GitHub: https://github.com/entitize/Fakeddit.git
 | `CAFE`                |        | `2022`        | https://github.com/cyxanna/CAFE.git                          | `PyTorch`      |
 | `SAFE`                |        | `2020`        | https://github.com/Jindi0/SAFE.git                           | `TensorFlow`   | 
 | `RoBERTa-MWSS`        |        | `2020`        | https://github.com/microsoft/MWSS.git                        | `PyTorch`      |
-| `Eann`                |        | `2018`        | https://github.com/yaqingwang/EANN-KDD18.git                 | `PyTorch`      |
-| `MVAE`                |        | `2019`        | https://github.com/dhruvkhattar/MVAE.git                     | `Keras`        |
 | `SpotFake+`           |        | `2020`        | https://github.com/shiivangii/SpotFakePlus.git               | `Keras`        |
 | `RIVF2021_fakenews`   |        | `2021`        | https://github.com/dt024/RIVF2021_fakenews.git               | `TensorFlow`   |
 
