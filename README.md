@@ -14,4 +14,5 @@ GitHub: https://github.com/entitize/Fakeddit.git
 | `RoBERTa-MWSS`        |        | `2020`        | https://github.com/microsoft/MWSS.git                        | `PyTorch`      |
 | `SpotFake+`           |        | `2020`        | https://github.com/shiivangii/SpotFakePlus.git               | `Keras`        |
 | `RIVF2021_fakenews`   |        | `2021`        | https://github.com/dt024/RIVF2021_fakenews.git               | `TensorFlow`   |
-
+| `HetTransformer`      |        | `2022`        | https://github.com/HetTransformer/HetTransformer-model.git   | `PyTorch`      |
+| `HMAN`                |        | `2021`        | https://github.com/nguyenvo09/EACL2021.git                   | `PyTorch`      |
