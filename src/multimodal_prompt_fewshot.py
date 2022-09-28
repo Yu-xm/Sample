@@ -4,7 +4,7 @@ from openprompt.data_utils import InputExample, FewShotSampler
 from openprompt.prompts import MixedTemplate
 from openprompt.plms import load_plm
 from openprompt import PromptDataLoader, PromptForClassification
-from openprompt.prompts import SoftVerbalizer, ManualVerbalizer
+from openprompt.prompts import SoftVerbalizer, ManualVerbalizer, KnowledgeableVerbalizer
 import torch
 import torch.nn.functional as F
 from transformers import AdamW, get_linear_schedule_with_warmup
@@ -25,7 +25,6 @@ def test_set(all, train, dev, few_shot=True, if_dev=True):
         if if_dev:
             for idx_1 in range(len(dev)):
                 used_id.append(dev[idx_1].guid)
-
 
         for idx in range(len(all)):
             if all[idx].guid not in used_id:
@@ -56,9 +55,9 @@ def test_set(all, train, dev, few_shot=True, if_dev=True):
 #         all_data.append(d)
 
 ## fakenewsnet data scripts
-image_files = glob.glob("../FakeNewsNet-master/code/fakenewsnet_dataset/politifact_multi/poli_img_all/*.jpg")
+image_files = glob.glob("../FakeNewsNet-master/code/fakenewsnet_dataset/gossipcop_multi/goss_img_all/*.jpg")
 all_data = []
-with open('../FakeNewsNet-master/politifact_multi.csv','r') as inf:
+with open('../FakeNewsNet-master/gossipcop_multi.csv','r') as inf:
     data = csv.reader(inf)
     next(data)
     for line in data:
@@ -86,8 +85,8 @@ for idx, d in enumerate(all_data):
     dataset.append(input_example)
 
 
-sampler = FewShotSampler(num_examples_per_label=50, num_examples_per_label_dev=1, also_sample_dev=True)
-train, dev = sampler.__call__(train_dataset=dataset, seed=2)
+sampler = FewShotSampler(num_examples_per_label=1, num_examples_per_label_dev=1, also_sample_dev=True)
+train, dev = sampler.__call__(train_dataset=dataset, seed=4)
 
 test = test_set(dataset, train, dev, if_dev=True)
 
@@ -119,6 +118,8 @@ test_dataloader = PromptDataLoader(dataset=test, template=mytemplate, tokenizer=
 
 
 myverbalizer = SoftVerbalizer(tokenizer, plm, num_classes=2)
+
+# myverbalizer = KnowledgeableVerbalizer(tokenizer, num_classes=2).from_file("./knowlegeable_verbalizer.txt")
 
 use_cuda = True
 prompt_model = PromptForClassification(plm=plm,template=mytemplate, verbalizer=myverbalizer, freeze_plm=False)
@@ -177,7 +178,7 @@ def mini_batching(inputs):
     for item in inputs['guid']:
         for sample in all_data:
             if item == sample['id']:
-                i_input = preprocess(Image.open("../FakeNewsNet-master/code/fakenewsnet_dataset/politifact_multi/poli_img_all/" + item + ".jpg")).unsqueeze(0).to(device)
+                i_input = preprocess(Image.open("../FakeNewsNet-master/code/fakenewsnet_dataset/gossipcop_multi/goss_img_all/" + item + ".jpg")).unsqueeze(0).to(device)
                 t_input = clip.tokenize(sample['txt'], truncate=True).to(device)
 
                 i_emb = model.encode_image(i_input)
@@ -196,6 +197,7 @@ def mini_batching(inputs):
     sim_std = torch.std(sim_all)
     normalized_mini = sig((mini_batch - sim_mean) / sim_std)
     mini_batch = normalized_mini * mini_batch
+
     return mini_batch
 
 
@@ -206,7 +208,8 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
 
     saved_model = None
     val_f1_macro_in_alpha = 0
-
+    tolerant = 5
+    saved_epoch = 0
     for epoch in range(epoch):
         tot_loss = 0
         print("===========EPOCH:{}=============".format(epoch+1))
@@ -215,6 +218,7 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
                 inputs = inputs.cuda()
             out = model.forward_without_verbalize(inputs)
             mini_batch = mini_batching(inputs)
+
             out = alpha * mini_batch + out
             logits = model.verbalizer.process_outputs(outputs=out, batch=inputs)
             # logits = prompt_model(inputs)
@@ -224,12 +228,14 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
             tot_loss += loss.item()
             optimizer.step()
             optimizer.zero_grad()
-            print(tot_loss/(step+1))
+            if step % 50 == 0:
+                print(tot_loss/(step+1))
 
         model.eval()
 
         allpreds = []
         alllabels = []
+        eval_total_loss = 0
         for step, inputs in enumerate(val_dataloader):
             if use_cuda:
                 inputs = inputs.cuda()
@@ -240,11 +246,14 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
 
             logits = model.verbalizer.process_outputs(outputs=out, batch=inputs)
             labels = inputs['label']
+            eval_loss = loss_function(logits, labels)
+            eval_total_loss += eval_loss.item()
             alllabels.extend(labels.cpu().tolist())
             allpreds.extend(torch.argmax(logits, dim=-1).cpu().tolist())
+            dev_loss = eval_total_loss/(step+1)
 
         acc = sum([int(i==j) for i,j in zip(allpreds, alllabels)])/len(allpreds)
-        print("validation:",acc)
+        print("validation:",  acc)
         report_val = classification_report(alllabels, allpreds, output_dict=True,
                                            labels=[0,1], target_names=["real", "fake"],
                                            )
@@ -253,8 +262,12 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
         f1_macro = report_val['macro avg']['f1-score']
         if float(f1_macro) > val_f1_macro_in_alpha:
             val_f1_macro_in_alpha = float(f1_macro)
-            print("saving model at {} alpha with {} f1 score".format(alpha, f1_macro))
             saved_model = model
+            saved_epoch = epoch
+            print("saving model at {} alpha with {} f1 score at Epoch {}".format(alpha, f1_macro, saved_epoch+1))
+        if epoch - saved_epoch >= tolerant:
+            print("Early stopping at epoch {}.".format(epoch+1))
+            break
 
     allpreds = []
     alllabels = []
@@ -262,14 +275,9 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
         if use_cuda:
             inputs = inputs.cuda()
         out = saved_model.forward_without_verbalize(inputs)
-
         mini_batch = mini_batching(inputs)
-            # mini_batch = torch.stack(mini_batch).to(device).squeeze(1)
         out = alpha * out + mini_batch
-            # out = torch.cat((mini_batch, out), -1)
-            # proj = torch.nn.Linear(1792, 768, device=device)
-            # out = proj(out)
-        # # print(out.size()) #[1,768]
+
         logits = saved_model.verbalizer.process_outputs(outputs=out, batch=inputs)
         labels = inputs['label']
         alllabels.extend(labels.cpu().tolist())
@@ -279,7 +287,7 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
     report_test = classification_report(alllabels, allpreds, labels=[0,1], target_names=["real", "fake"])
     print(report_test)
 
-alpha = 0.3
+alpha = 0.8
 
-train(prompt_model,train_dataloader,validation_dataloader,test_dataloader,
-    epoch=20,loss_function=loss_func,optimizer=optimizer1, alpha=alpha)
+train(prompt_model, train_dataloader, validation_dataloader, test_dataloader,
+    epoch=20, loss_function=loss_func, optimizer=optimizer1, alpha=alpha)
