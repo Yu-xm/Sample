@@ -1,7 +1,7 @@
 import glob, json, random, re, nltk, csv
 import numpy as np
 from openprompt.data_utils import InputExample, FewShotSampler
-from openprompt.prompts import MixedTemplate
+from openprompt.prompts import MixedTemplate, SoftTemplate
 from openprompt.plms import load_plm
 from openprompt import PromptDataLoader, PromptForClassification
 from openprompt.prompts import SoftVerbalizer, ManualVerbalizer, KnowledgeableVerbalizer
@@ -55,9 +55,9 @@ def test_set(all, train, dev, few_shot=True, if_dev=True):
 #         all_data.append(d)
 
 ## fakenewsnet data scripts
-image_files = glob.glob("../FakeNewsNet-master/code/fakenewsnet_dataset/gossipcop_multi/goss_img_all/*.jpg")
+image_files = glob.glob("../FakeNewsNet-master/code/fakenewsnet_dataset/politifact_multi/poli_img_all/*.jpg")
 all_data = []
-with open('../FakeNewsNet-master/gossipcop_multi.csv','r') as inf:
+with open('../FakeNewsNet-master/politifact_multi.csv','r') as inf:
     data = csv.reader(inf)
     next(data)
     for line in data:
@@ -85,36 +85,38 @@ for idx, d in enumerate(all_data):
     dataset.append(input_example)
 
 
-sampler = FewShotSampler(num_examples_per_label=1, num_examples_per_label_dev=1, also_sample_dev=True)
-train, dev = sampler.__call__(train_dataset=dataset, seed=4)
+# sampler = FewShotSampler(num_examples_per_label=4, num_examples_per_label_dev=4, also_sample_dev=True)
+# train, dev = sampler.__call__(train_dataset=dataset, seed=3)
 
-test = test_set(dataset, train, dev, if_dev=True)
+# test = test_set(dataset, train, dev, if_dev=True)
 
-# ## uncomment here for full-scale training
-# train, dev = train_test_split(dataset, test_size=0.2, shuffle=True)
-# dev, test = train_test_split(dev, test_size=0.5, shuffle=True)
-# ##
+# uncomment here for full-scale training
+train, dev = train_test_split(dataset, test_size=0.2, shuffle=True)
+dev, test = train_test_split(dev, test_size=0.5, shuffle=True)
+##
 
 
 plm, tokenizer, model_config, WrapperClass = load_plm("roberta", "roberta-base")
 
 mytemplate = MixedTemplate(model=plm, tokenizer=tokenizer,
-                            text='{"soft":"<head>"}Here is a piece of news with {"mask"} information.{"soft":"<tail>"} {"placeholder":"text_a"} {"placeholder":"text_b"}')
+                            # text='{"soft":"<head>"}Here is a piece of news with {"mask"} information.{"soft":"<tail>"} {"placeholder":"text_a"} {"placeholder":"text_b"}')
+                            text='{"soft"}{"soft"}{"soft"}{"mask"}{"placeholder":"text_a"}')
+# mytemplate = SoftTemplate(model=plm, tokenizer=tokenizer, num_tokens=20, text='{"placeholder":"text_a"}{"soft"}{"soft"}{"soft"}{"soft"}{"mask"}')
 
 train_dataloader = PromptDataLoader(dataset=train, template=mytemplate, tokenizer=tokenizer,
     tokenizer_wrapper_class=WrapperClass, max_seq_length=512, decoder_max_length=3,
     batch_size=4, shuffle=True, teacher_forcing=False, predict_eos_token=False,
-    truncate_method="head")
+    truncate_method="tail")
 
 validation_dataloader = PromptDataLoader(dataset=dev, template=mytemplate, tokenizer=tokenizer,
         tokenizer_wrapper_class=WrapperClass, max_seq_length=512, decoder_max_length=3,
         batch_size=4, shuffle=True, teacher_forcing=False, predict_eos_token=False,
-        truncate_method="head")
+        truncate_method="tail")
 
 test_dataloader = PromptDataLoader(dataset=test, template=mytemplate, tokenizer=tokenizer,
                                    tokenizer_wrapper_class=WrapperClass, max_seq_length=512, decoder_max_length=3,
                                    batch_size=4, shuffle=True, teacher_forcing=False, predict_eos_token=False,
-                                   truncate_method="head")
+                                   truncate_method="tail")
 
 
 myverbalizer = SoftVerbalizer(tokenizer, plm, num_classes=2)
@@ -178,7 +180,7 @@ def mini_batching(inputs):
     for item in inputs['guid']:
         for sample in all_data:
             if item == sample['id']:
-                i_input = preprocess(Image.open("../FakeNewsNet-master/code/fakenewsnet_dataset/gossipcop_multi/goss_img_all/" + item + ".jpg")).unsqueeze(0).to(device)
+                i_input = preprocess(Image.open("../FakeNewsNet-master/code/fakenewsnet_dataset/politifact_multi/poli_img_all/" + item + ".jpg")).unsqueeze(0).to(device)
                 t_input = clip.tokenize(sample['txt'], truncate=True).to(device)
 
                 i_emb = model.encode_image(i_input)
@@ -204,7 +206,8 @@ def mini_batching(inputs):
 
 
 
-def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_function, optimizer, alpha=None):
+def train(model=prompt_model, train_dataloader=train_dataloader, val_dataloader=validation_dataloader,
+          test_dataloader=test_dataloader, epoch=20, loss_function=loss_func, optimizer=optimizer1, alpha=None):
 
     saved_model = None
     val_f1_macro_in_alpha = 0
@@ -216,6 +219,7 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
         for step, inputs in enumerate(train_dataloader):
             if use_cuda:
                 inputs = inputs.cuda()
+
             out = model.forward_without_verbalize(inputs)
             mini_batch = mini_batching(inputs)
 
@@ -287,7 +291,7 @@ def train(model, train_dataloader, val_dataloader, test_dataloader, epoch, loss_
     report_test = classification_report(alllabels, allpreds, labels=[0,1], target_names=["real", "fake"])
     print(report_test)
 
-alpha = 0.8
+alpha = 0
 
 train(prompt_model, train_dataloader, validation_dataloader, test_dataloader,
     epoch=20, loss_function=loss_func, optimizer=optimizer1, alpha=alpha)
