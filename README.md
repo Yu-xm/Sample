@@ -13,6 +13,7 @@ GitHub: https://github.com/entitize/Fakeddit.git
 | `SAFE`                | Image & Text | `2020`        | https://github.com/Jindi0/SAFE.git                                        | `TensorFlow`   | 
 | `RoBERTa-MWSS`        | Image & Text | `2020`        | https://github.com/microsoft/MWSS.git                                     | `PyTorch`      |
 | `SpotFake+`           | Image & Text | `2020`        | https://github.com/shiivangii/SpotFakePlus.git                            | `Keras`        |
+| `EANN`| https://github.com/yaqingwang/EANN-KDD18
 | `RIVF2021_fakenews`   | Image & Text | `2021`        | https://github.com/dt024/RIVF2021_fakenews.git                            | `TensorFlow`   |
 | `VRoC`                | Text         | `2020`        | https://github.com/cmxxx/VRoC.git                                         | `TensorFlow`   |
 | `Triple Branch BERT`  | Text         | `2019`        | https://github.com/manideep2510/siamese-BERT-fake-news-detection-LIAR.git | `TensorFlow`   |
