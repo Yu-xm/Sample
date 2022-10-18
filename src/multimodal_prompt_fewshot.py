@@ -157,10 +157,10 @@ class Alpha(torch.nn.Module):
 class Proj_layers(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.proj1 = torch.nn.Linear(1024, 768, device=device)
-        self.ln1 = torch.nn.LayerNorm(768, device=device)
-        self.proj2 = torch.nn.Linear(768, 768, device=device)
-        self.ln2 = torch.nn.LayerNorm(768, device=device)
+        self.proj1 = torch.nn.Linear(1024, 768).to(device)
+        self.ln1 = torch.nn.LayerNorm(768).to(device)
+        self.proj2 = torch.nn.Linear(768, 768).to(device)
+        self.ln2 = torch.nn.LayerNorm(768).to(device)
         # self.sim = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
         # self.sig = torch.nn.Sigmoid()
 
