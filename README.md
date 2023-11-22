@@ -1,4 +1,4 @@
-# OurPaper
+# Official Implementation of the Paper 'Hi'
 
 ## Baseline
 
