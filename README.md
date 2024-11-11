@@ -1,5 +1,5 @@
 # SMAPLE
-Official Implementation
+Official Implementation of 'Similarity-Aware Multimodal Prompt Learning for Fake News Detection'
 
 ## Baseline
 
