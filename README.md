@@ -1,4 +1,5 @@
-# Official Implementation of the Paper 'Hi'
+# SMAPLE
+Official Implementation
 
 ## Baseline
 
